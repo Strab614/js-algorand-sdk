@@ -9,6 +9,7 @@ import ProductDetail from './components/ProductDetail';
 import CreateProduct from './components/CreateProduct';
 import { AlgorandContext } from './contexts/AlgorandContext';
 import { initAlgorand } from './utils/algorand';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/App.css';
 
 function App() {
