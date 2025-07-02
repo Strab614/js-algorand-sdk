@@ -1,9 +1,9 @@
 import algosdk from 'algosdk';
 
-// Algorand node connection parameters
-const algodServer = 'http://localhost';
-const algodPort = 4001;
-const algodToken = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+// Algorand node connection parameters - using public TestNet API
+const algodServer = 'https://testnet-api.algonode.cloud';
+const algodPort = '';
+const algodToken = '';
 
 // Initialize Algorand client
 export const initAlgorand = async () => {
