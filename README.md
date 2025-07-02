@@ -1,143 +1,114 @@
-# js-algorand-sdk
+# Algorand Inventory Management System
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/algorand/js-algorand-sdk/tree/develop.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/algorand/js-algorand-sdk/tree/develop) [![npm version](https://badge.fury.io/js/algosdk.svg)](https://www.npmjs.com/package/algosdk)
+A blockchain-based inventory management system built on the Algorand blockchain. This system leverages Algorand Standard Assets (ASAs) and smart contracts to provide a secure, transparent, and efficient inventory management solution.
 
-AlgoSDK is the official JavaScript library for communicating with the Algorand network. It's designed for modern browsers and Node.js.
+## Features
 
-## New Major Version 3
+- **Blockchain-Based Data Structure**: Each product is represented as an Algorand Standard Asset (ASA) with unique properties
+- **Smart Contract Functionality**: Automated inventory checks, reordering, and audit processes
+- **Role-Based Access Control**: Hierarchical security with multi-signature requirements
+- **Real-Time Monitoring**: Track inventory levels, transactions, and performance metrics
+- **IPFS Integration**: Store product metadata and backups on IPFS
+- **Audit Trail**: Complete on-chain record of all inventory changes
 
-Existing codebases using v2 of this library will be incompatible with v3. The v3 release introduces breaking changes to the API, and a migration guide is available [here](https://github.com/algorand/js-algorand-sdk/blob/main/v2_TO_v3_MIGRATION_GUIDE.md).
+## Technical Architecture
 
-## Installation
+### Smart Contracts
 
-### [Node.js](https://nodejs.org/en/download/)
+1. **Inventory Contract**: Manages product data, quantities, and thresholds
+2. **Asset Manager**: Handles ASA creation, modification, and transfers
+3. **Oracle Contract**: Performs automated checks and connects with external systems
+4. **Security Contract**: Manages access control and data backup
 
-```
-$ npm install algosdk
-```
+### Frontend
 
-> This package provides TypeScript types, but you will need [TypeScript](https://www.typescriptlang.org/) version 4.2 or higher to use them properly.
+- React-based responsive web interface
+- Integration with Algorand blockchain via JavaScript SDK
+- Real-time data visualization with Chart.js
+- Mobile-friendly design with Bootstrap
 
-### Browser
+## Getting Started
 
-Include a minified browser bundle directly in your HTML like so:
+### Prerequisites
 
-```html
-<script
-  src="https://unpkg.com/algosdk@v3.3.1/dist/browser/algosdk.min.js"
-  integrity="sha384-ZKC9WUqWQXPV37HXbG70yY2BXT++TyIRxopoGWJw6whOA2lsPdgjfMoEBJxKgIQa"
-  crossorigin="anonymous"
-></script>
-```
+- Python 3.6+
+- Node.js 14+
+- Algorand Sandbox or access to an Algorand node
+- PyTeal
+- Algorand JavaScript SDK
 
-or
+### Installation
 
-```html
-<script
-  src="https://cdn.jsdelivr.net/npm/algosdk@v3.3.1/dist/browser/algosdk.min.js"
-  integrity="sha384-ZKC9WUqWQXPV37HXbG70yY2BXT++TyIRxopoGWJw6whOA2lsPdgjfMoEBJxKgIQa"
-  crossorigin="anonymous"
-></script>
-```
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/algorand-inventory-management.git
+   cd algorand-inventory-management
+   ```
 
-Information about hosting the package for yourself, finding the browser bundles of previous versions, and computing the SRI hash is [available here](FAQ.md).
+2. Install dependencies:
+   ```
+   npm install
+   ```
 
-## Quick Start
+3. Deploy the smart contracts:
+   ```
+   python3 scripts/deploy.py
+   ```
 
-```javascript
-const token = 'Your algod API token';
-const server = 'http://127.0.0.1';
-const port = 8080;
-const client = new algosdk.Algodv2(token, server, port);
+4. Start the development server:
+   ```
+   npm start
+   ```
 
-(async () => {
-  console.log(await client.status().do());
-})().catch((e) => {
-  console.log(e);
-});
-```
+### Smart Contract Deployment
 
-## Documentation
+The deployment script will:
+1. Compile the PyTeal contracts to TEAL
+2. Deploy all four contracts to the Algorand blockchain
+3. Save the application IDs to a JSON file for frontend use
 
-Documentation for this SDK is available here: https://algorand.github.io/js-algorand-sdk/. Additional resources are available on https://developer.algorand.org.
+## Usage
 
-## Examples
+### Creating a Product
 
-Running examples requires access to a running node. Follow the instructions in Algorand's [developer resources](https://developer.algorand.org/docs/run-a-node/setup/install/) to install a node on your computer.
+1. Navigate to the Products page
+2. Click "Add New Product"
+3. Fill in the product details
+4. Submit the form to create a new ASA representing the product
 
-**As portions of the codebase are written in TypeScript, example files cannot be run directly using `node`**. Please refer to the instructions described in the [examples/README.md](examples/README.md) file for more information regarding running the examples.
+### Managing Inventory
 
-## SDK Development
+1. View current inventory levels on the Dashboard
+2. Update product quantities from the Product Detail page
+3. Monitor low stock items and reorder when necessary
 
-### Building
+### Auditing
 
-To build a new version of the library, run:
+1. View the complete transaction history on the Transactions page
+2. Filter transactions by type, date, or product
+3. Export audit reports as needed
 
-```bash
-npm run build
-```
+## Security Architecture
 
-### Generating Documentation
+- **Role-Based Access**: Admin, Manager, and Operator roles with different permissions
+- **Multi-Signature Requirements**: Critical operations require multiple approvals
+- **Immutable Transaction Records**: All inventory changes are permanently recorded on the blockchain
+- **Automated Backups**: Regular backups to IPFS with blockchain references
 
-To generate the documentation website, run:
+## API Integration
 
-```bash
-npm run docs
-```
-
-The static website will be located in the `docs/` directory.
-
-### Testing
-
-We have two test suites: mocha tests in this repo, and the Algorand SDK test suite from https://github.com/algorand/algorand-sdk-testing.
-
-#### Node.js
-
-To run the mocha tests in Node.js, run:
-
-```bash
-npm test
-```
-
-To run the SDK test suite in Node.js, run:
-
-```bash
-make docker-test
-```
-
-#### Browsers
-
-The test suites can also run in browsers. To do so, set the environment variable `TEST_BROWSER` to
-one of our supported browsers. Currently we support testing in `chrome` and `firefox`. When
-`TEST_BROWSER` is set, the mocha and SDK test suites will run in that browser.
-
-For example, to run mocha tests in Chrome:
-
-```bash
-TEST_BROWSER=chrome npm test
-```
-
-And to run SDK tests in Firefox:
-
-```bash
-TEST_BROWSER=firefox make docker-test
-```
-
-### Code Style
-
-This project enforces a modified version of the [Airbnb code style](https://github.com/airbnb/javascript).
-
-We've setup linters and formatters to help catch errors and improve the development experience:
-
-- [Prettier](https://prettier.io/) – ensures that code is formatted in a readable way.
-- [ESLint](https://eslint.org/) — checks code for antipatterns as well as formatting.
-
-> If using the Visual Studio Code editor with the [recommended extensions](.vscode/extensions.json), ESLint errors should be highlighted in red and the Prettier extension should format code on every save.
-
-#### Precommit Hook
-
-The linters and formatters listed above should run automatically on each commit to catch errors early and save CI running time.
+The system provides REST APIs for integration with:
+- Point of Sale (POS) systems
+- Accounting software
+- Supplier management systems
+- Shipping and logistics platforms
 
 ## License
 
-js-algorand-sdk is licensed under an MIT license. See the [LICENSE](https://github.com/algorand/js-algorand-sdk/blob/master/LICENSE) file for details.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Algorand Foundation
+- IPFS
+- PyTeal developers
