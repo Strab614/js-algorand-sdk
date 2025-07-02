@@ -35,7 +35,7 @@ const Settings = () => {
         throw new Error('Algorand connection not established');
       }
       
-      if (!appIds || !appIds.security_app_id || appIds.security_app_id === 0) {
+      if (!appIds || !appIds.security_app_id) {
         throw new Error('Security contract not deployed');
       }
       
@@ -82,7 +82,7 @@ const Settings = () => {
         throw new Error('Algorand connection not established');
       }
       
-      if (!appIds || !appIds.security_app_id || appIds.security_app_id === 0) {
+      if (!appIds || !appIds.security_app_id) {
         throw new Error('Security contract not deployed');
       }
       
@@ -117,7 +117,7 @@ const Settings = () => {
         throw new Error('Algorand connection not established');
       }
       
-      if (!appIds || !appIds.oracle_app_id || appIds.oracle_app_id === 0) {
+      if (!appIds || !appIds.oracle_app_id) {
         throw new Error('Oracle contract not deployed');
       }
       
@@ -148,7 +148,7 @@ const Settings = () => {
         throw new Error('Algorand connection not established');
       }
       
-      if (!appIds || !appIds.security_app_id || appIds.security_app_id === 0) {
+      if (!appIds || !appIds.security_app_id) {
         throw new Error('Security contract not deployed');
       }
       
