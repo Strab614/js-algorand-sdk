@@ -17,10 +17,15 @@ const Dashboard = () => {
   
   // Mock data for demonstration
   const [inventoryData, setInventoryData] = useState({
-    totalProducts: 0,
-    lowStockItems: 0,
-    totalValue: 0,
-    recentTransactions: []
+    totalProducts: 12,
+    lowStockItems: 3,
+    totalValue: 25000,
+    recentTransactions: [
+      { id: 1, type: 'Restock', product: 'Widget A', quantity: 50, date: '2023-11-15' },
+      { id: 2, type: 'Sale', product: 'Gadget B', quantity: 5, date: '2023-11-14' },
+      { id: 3, type: 'Adjustment', product: 'Tool C', quantity: -2, date: '2023-11-13' },
+      { id: 4, type: 'Restock', product: 'Part D', quantity: 100, date: '2023-11-12' }
+    ]
   });
   
   useEffect(() => {
@@ -108,154 +113,153 @@ const Dashboard = () => {
     );
   }
   
+  // Always show the dashboard UI, even if contracts aren't deployed
   return (
     <Container>
       <h1 className="mb-4">Dashboard</h1>
       
       {!appIds || Object.values(appIds).every(id => id === 0) ? (
-        <Alert variant="warning">
-          <Alert.Heading>Setup Required</Alert.Heading>
+        <Alert variant="warning" className="mb-4">
+          <Alert.Heading>Smart Contracts Not Deployed</Alert.Heading>
           <p>
-            The smart contracts have not been deployed yet. Please run the deployment script to set up the system.
+            The smart contracts have not been deployed yet. Some features may be limited.
           </p>
           <hr />
           <p className="mb-0">
-            Run <code>python3 scripts/deploy.py</code> to deploy the contracts.
+            You can run <code>python3 scripts/deploy.py</code> to deploy the contracts when ready.
           </p>
         </Alert>
-      ) : (
-        <>
-          <Row className="mb-4">
-            <Col md={4}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body className="text-center">
-                  <Card.Title>Total Products</Card.Title>
-                  <h2 className="display-4">{inventoryData.totalProducts}</h2>
-                  <Link to="/products">
-                    <Button variant="outline-primary" size="sm">View All Products</Button>
-                  </Link>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={4}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body className="text-center">
-                  <Card.Title>Low Stock Items</Card.Title>
-                  <h2 className="display-4">{inventoryData.lowStockItems}</h2>
-                  <Button variant="outline-warning" size="sm">View Low Stock</Button>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={4}>
-              <Card className="h-100 shadow-sm">
-                <Card.Body className="text-center">
-                  <Card.Title>Total Inventory Value</Card.Title>
-                  <h2 className="display-4">${inventoryData.totalValue.toLocaleString()}</h2>
-                  <Button variant="outline-success" size="sm">View Valuation</Button>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-          
-          <Row className="mb-4">
-            <Col md={6}>
-              <Card className="shadow-sm">
-                <Card.Body>
-                  <Card.Title>Inventory Levels</Card.Title>
-                  <div style={{ height: '300px' }}>
-                    <Bar 
-                      data={inventoryChartData} 
-                      options={{ 
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: 'top',
-                          },
-                          title: {
-                            display: true,
-                            text: 'Current Stock vs. Minimum Threshold'
-                          }
-                        }
-                      }} 
-                    />
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={6}>
-              <Card className="shadow-sm">
-                <Card.Body>
-                  <Card.Title>Sales Trend</Card.Title>
-                  <div style={{ height: '300px' }}>
-                    <Line 
-                      data={salesChartData} 
-                      options={{ 
-                        maintainAspectRatio: false,
-                        plugins: {
-                          legend: {
-                            position: 'top',
-                          },
-                          title: {
-                            display: true,
-                            text: 'Monthly Sales Trend'
-                          }
-                        }
-                      }} 
-                    />
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-          
-          <Row>
-            <Col md={12}>
-              <Card className="shadow-sm">
-                <Card.Body>
-                  <Card.Title>Recent Transactions</Card.Title>
-                  <div className="table-responsive">
-                    <table className="table table-striped">
-                      <thead>
-                        <tr>
-                          <th>ID</th>
-                          <th>Type</th>
-                          <th>Product</th>
-                          <th>Quantity</th>
-                          <th>Date</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inventoryData.recentTransactions.map(tx => (
-                          <tr key={tx.id}>
-                            <td>{tx.id}</td>
-                            <td>
-                              <span className={`badge ${tx.type === 'Sale' ? 'bg-danger' : tx.type === 'Restock' ? 'bg-success' : 'bg-warning'}`}>
-                                {tx.type}
-                              </span>
-                            </td>
-                            <td>{tx.product}</td>
-                            <td>{tx.quantity > 0 ? `+${tx.quantity}` : tx.quantity}</td>
-                            <td>{tx.date}</td>
-                            <td>
-                              <Button variant="outline-secondary" size="sm">View</Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="text-center mt-3">
-                    <Link to="/transactions">
-                      <Button variant="primary">View All Transactions</Button>
-                    </Link>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        </>
-      )}
+      ) : null}
+      
+      <Row className="mb-4">
+        <Col md={4}>
+          <Card className="h-100 shadow-sm">
+            <Card.Body className="text-center">
+              <Card.Title>Total Products</Card.Title>
+              <h2 className="display-4">{inventoryData.totalProducts}</h2>
+              <Link to="/products">
+                <Button variant="outline-primary" size="sm">View All Products</Button>
+              </Link>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={4}>
+          <Card className="h-100 shadow-sm">
+            <Card.Body className="text-center">
+              <Card.Title>Low Stock Items</Card.Title>
+              <h2 className="display-4">{inventoryData.lowStockItems}</h2>
+              <Button variant="outline-warning" size="sm">View Low Stock</Button>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={4}>
+          <Card className="h-100 shadow-sm">
+            <Card.Body className="text-center">
+              <Card.Title>Total Inventory Value</Card.Title>
+              <h2 className="display-4">${inventoryData.totalValue.toLocaleString()}</h2>
+              <Button variant="outline-success" size="sm">View Valuation</Button>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+      
+      <Row className="mb-4">
+        <Col md={6}>
+          <Card className="shadow-sm">
+            <Card.Body>
+              <Card.Title>Inventory Levels</Card.Title>
+              <div style={{ height: '300px' }}>
+                <Bar 
+                  data={inventoryChartData} 
+                  options={{ 
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top',
+                      },
+                      title: {
+                        display: true,
+                        text: 'Current Stock vs. Minimum Threshold'
+                      }
+                    }
+                  }} 
+                />
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={6}>
+          <Card className="shadow-sm">
+            <Card.Body>
+              <Card.Title>Sales Trend</Card.Title>
+              <div style={{ height: '300px' }}>
+                <Line 
+                  data={salesChartData} 
+                  options={{ 
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'top',
+                      },
+                      title: {
+                        display: true,
+                        text: 'Monthly Sales Trend'
+                      }
+                    }
+                  }} 
+                />
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+      
+      <Row>
+        <Col md={12}>
+          <Card className="shadow-sm">
+            <Card.Body>
+              <Card.Title>Recent Transactions</Card.Title>
+              <div className="table-responsive">
+                <table className="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Type</th>
+                      <th>Product</th>
+                      <th>Quantity</th>
+                      <th>Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inventoryData.recentTransactions.map(tx => (
+                      <tr key={tx.id}>
+                        <td>{tx.id}</td>
+                        <td>
+                          <span className={`badge ${tx.type === 'Sale' ? 'bg-danger' : tx.type === 'Restock' ? 'bg-success' : 'bg-warning'}`}>
+                            {tx.type}
+                          </span>
+                        </td>
+                        <td>{tx.product}</td>
+                        <td>{tx.quantity > 0 ? `+${tx.quantity}` : tx.quantity}</td>
+                        <td>{tx.date}</td>
+                        <td>
+                          <Button variant="outline-secondary" size="sm">View</Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="text-center mt-3">
+                <Link to="/transactions">
+                  <Button variant="primary">View All Transactions</Button>
+                </Link>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
     </Container>
   );
 };
