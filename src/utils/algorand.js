@@ -9,8 +9,8 @@ const algodToken = '';
 // Initialize Algorand client
 export const initAlgorand = async () => {
   try {
-    // Initialize Algod client - Updated for algosdk v3
-    const algodClient = new algosdk.Algodv2(algodToken, algodServer, algodPort);
+    // Initialize Algod client
+    const algodClient = new algosdk.AlgodClient(algodToken, algodServer, algodPort);
     
     // Check if we have account info in local storage
     let accountInfo = null;
