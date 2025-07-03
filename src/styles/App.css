@@ -4,6 +4,12 @@
 .dashboard-card {
   border-radius: 0.5rem;
   overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
 }
 
 .dashboard-card .card-title {
@@ -112,4 +118,63 @@ footer p {
 .spinner-border {
   width: 2rem;
   height: 2rem;
+}
+
+/* Product card */
+.product-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.product-image-container {
+  height: 200px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8f9fa;
+}
+
+.product-image {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+}
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed #ced4da;
+  border-radius: 0.25rem;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.dropzone:hover {
+  border-color: #6c757d;
+}
+
+/* Toast notifications */
+.Toastify__toast {
+  border-radius: 0.25rem;
+}
+
+/* Modal customization */
+.modal-content {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.modal-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.modal-footer {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
 }

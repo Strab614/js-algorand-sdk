@@ -1,4 +1,5 @@
 import algosdk from 'algosdk';
+import axios from 'axios';
 
 // Algorand node connection parameters - using public TestNet API
 const algodServer = 'https://testnet-api.algonode.cloud';
@@ -9,7 +10,7 @@ const algodToken = '';
 export const initAlgorand = async () => {
   try {
     // Initialize Algod client
-    const algodClient = new algosdk.Algodv2(algodToken, algodServer, algodPort);
+    const algodClient = new algosdk.AlgodClient(algodToken, algodServer, algodPort);
     
     // Check if we have account info in local storage
     let accountInfo = null;
@@ -79,6 +80,24 @@ export const createProductASA = async (algodClient, account, productData) => {
     // Convert mnemonic to private key
     const privateKey = algosdk.mnemonicToSecretKey(account.mnemonic).sk;
     
+    // Create metadata JSON
+    const metadata = {
+      description: productData.description,
+      price: productData.price,
+      minThreshold: productData.minThreshold,
+      location: productData.location,
+      supplier: productData.supplier,
+      category: productData.category,
+      sku: productData.sku,
+      expirationDate: productData.expirationDate,
+      imageUrl: productData.imageUrl,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Convert metadata to note field
+    const note = new TextEncoder().encode(JSON.stringify(metadata));
+    
     // Create unsigned asset creation transaction
     const txn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
       from: account.address,
@@ -91,7 +110,8 @@ export const createProductASA = async (algodClient, account, productData) => {
       clawback: account.address,
       unitName: productData.unitName,
       assetName: productData.name,
-      url: productData.url,
+      note,
+      url: productData.url || '',
       suggestedParams: params,
     });
     
@@ -226,6 +246,7 @@ export const getAssetInfo = async (algodClient, assetId) => {
           description: 'Sample product description',
           price: 19.99,
           minThreshold: 20,
+          imageUrl: `https://picsum.photos/seed/product${assetId}/500/500`,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }
@@ -233,6 +254,57 @@ export const getAssetInfo = async (algodClient, assetId) => {
     }
   } catch (error) {
     console.error('Error getting asset info:', error);
+    throw error;
+  }
+};
+
+// Upload image to IPFS (simulated)
+export const uploadToIPFS = async (file) => {
+  try {
+    // In a real application, you would upload to IPFS
+    // For this demo, we'll simulate an upload and return a placeholder URL
+    
+    // Simulate upload delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Return a placeholder image URL
+    return `https://picsum.photos/seed/${file.name.replace(/\s+/g, '')}/500/500`;
+  } catch (error) {
+    console.error('Error uploading to IPFS:', error);
+    throw error;
+  }
+};
+
+// Transfer asset
+export const transferAsset = async (algodClient, account, assetId, receiverAddress, amount) => {
+  try {
+    // Get suggested parameters
+    const params = await algodClient.getTransactionParams().do();
+    
+    // Convert mnemonic to private key
+    const privateKey = algosdk.mnemonicToSecretKey(account.mnemonic).sk;
+    
+    // Create asset transfer transaction
+    const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+      from: account.address,
+      to: receiverAddress,
+      amount,
+      assetIndex: assetId,
+      suggestedParams: params,
+    });
+    
+    // Sign transaction
+    const signedTxn = txn.signTxn(privateKey);
+    
+    // Submit transaction
+    const { txId } = await algodClient.sendRawTransaction(signedTxn).do();
+    
+    // Wait for confirmation
+    const result = await waitForConfirmation(algodClient, txId, 5);
+    
+    return result;
+  } catch (error) {
+    console.error('Error transferring asset:', error);
     throw error;
   }
 };

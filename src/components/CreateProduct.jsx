@@ -1,11 +1,14 @@
 import React, { useState, useContext } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Alert, Image } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlgorandContext } from '../contexts/AlgorandContext';
-import { createProductASA, callApp } from '../utils/algorand';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import Dropzone from 'react-dropzone';
+import Compressor from 'compressorjs';
 
 const CreateProduct = () => {
-  const { algod, account, appIds } = useContext(AlgorandContext);
+  const { algod, account, isConnected, connectWallet, createAsset, uploadImage } = useContext(AlgorandContext);
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -23,6 +26,8 @@ const CreateProduct = () => {
     url: ''
   });
   
+  const [productImage, setProductImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -35,48 +40,118 @@ const CreateProduct = () => {
     });
   };
   
+  const handleImageDrop = (acceptedFiles) => {
+    if (acceptedFiles.length === 0) return;
+    
+    const file = acceptedFiles[0];
+    
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image size must be less than 10MB');
+      return;
+    }
+    
+    // Compress the image
+    new Compressor(file, {
+      quality: 0.8,
+      maxWidth: 1000,
+      success: (compressedFile) => {
+        setProductImage(compressedFile);
+        
+        // Create preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPreviewImage(e.target.result);
+        };
+        reader.readAsDataURL(compressedFile);
+      },
+      error: (err) => {
+        toast.error('Error compressing image');
+        console.error(err);
+      },
+    });
+  };
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     
     try {
+      if (!isConnected) {
+        await connectWallet();
+      }
+      
       if (!algod || !account) {
         throw new Error('Algorand connection not established');
       }
       
-      if (!appIds || !appIds.inventory_app_id || appIds.inventory_app_id === 0) {
-        throw new Error('Inventory contract not deployed');
+      // Upload image if provided
+      let imageUrl = undefined;
+      if (productImage) {
+        toast.info('Uploading product image...');
+        imageUrl = await uploadImage(productImage);
       }
       
-      // In a real application, you would:
-      // 1. Create an ASA for the product
-      // 2. Call the inventory contract to register the product
-      // 3. Store metadata in IPFS
+      // Create the asset on Algorand
+      toast.info('Creating product on blockchain...');
+      const assetId = await createAsset(
+        formData.name,
+        formData.unitName,
+        parseInt(formData.quantity),
+        0, // Decimals (0 for inventory items)
+        formData.description,
+        parseFloat(formData.price),
+        parseInt(formData.minThreshold),
+        imageUrl
+      );
       
-      // For now, we'll simulate success
-      console.log('Creating product with data:', formData);
-      
-      // Simulate blockchain delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setSuccess('Product created successfully! In a real application, this would create an ASA and register it with the inventory contract.');
+      setSuccess(`Product "${formData.name}" created successfully with Asset ID: ${assetId}`);
       
       // Redirect after a delay
       setTimeout(() => {
-        navigate('/products');
-      }, 3000);
+        navigate(`/products/${assetId}`);
+      }, 2000);
       
     } catch (err) {
       console.error('Error creating product:', err);
       setError(err.message || 'Failed to create product. Please try again later.');
+      toast.error('Failed to create product');
     } finally {
       setLoading(false);
     }
   };
   
+  if (!isConnected) {
+    return (
+      <Container>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h1>Create New Product</h1>
+          <Button as={Link} to="/products" variant="secondary">Back to Products</Button>
+        </div>
+        
+        <Card className="shadow-sm text-center p-5">
+          <Card.Body>
+            <h2 className="mb-4">Connect Your Wallet</h2>
+            <p className="mb-4">You need to connect your wallet to create a new product.</p>
+            <Button 
+              variant="primary" 
+              size="lg" 
+              onClick={connectWallet}
+              disabled={loading}
+            >
+              {loading ? 'Connecting...' : 'Connect Wallet'}
+            </Button>
+          </Card.Body>
+        </Card>
+      </Container>
+    );
+  }
+  
   return (
     <Container>
+      <ToastContainer position="top-right" autoClose={5000} />
+      
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Create New Product</h1>
         <Button as={Link} to="/products" variant="secondary">Back to Products</Button>
@@ -233,24 +308,51 @@ const CreateProduct = () => {
                     onChange={handleChange}
                   />
                 </Form.Group>
-                
-                <Form.Group className="mb-3">
-                  <Form.Label>URL (IPFS or other)</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="url"
-                    value={formData.url}
-                    onChange={handleChange}
-                    placeholder="https://ipfs.io/ipfs/..."
-                  />
-                  <Form.Text className="text-muted">
-                    URL to product metadata or documentation
-                  </Form.Text>
-                </Form.Group>
               </Col>
             </Row>
             
-            <div className="d-flex justify-content-end mt-3">
+            <Row className="mt-3">
+              <Col md={12}>
+                <h5 className="mb-3">Product Image</h5>
+                <Dropzone 
+                  onDrop={handleImageDrop}
+                  accept={{
+                    'image/jpeg': ['.jpg', '.jpeg'],
+                    'image/png': ['.png'],
+                    'image/webp': ['.webp']
+                  }}
+                  maxFiles={1}
+                >
+                  {({getRootProps, getInputProps}) => (
+                    <div 
+                      {...getRootProps()} 
+                      className="border border-dashed border-secondary rounded p-4 text-center cursor-pointer"
+                    >
+                      <input {...getInputProps()} />
+                      {previewImage ? (
+                        <div className="text-center">
+                          <Image 
+                            src={previewImage} 
+                            alt="Product preview" 
+                            style={{ maxHeight: '200px' }} 
+                            className="mb-3"
+                            thumbnail
+                          />
+                          <p>Click or drag to replace image</p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="mb-0">Drag & drop a product image here, or click to select</p>
+                          <p className="text-muted small">Supports JPG, PNG, WEBP (max 10MB)</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Dropzone>
+              </Col>
+            </Row>
+            
+            <div className="d-flex justify-content-end mt-4">
               <Button variant="secondary" as={Link} to="/products" className="me-2">
                 Cancel
               </Button>
