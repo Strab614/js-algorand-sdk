@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Container, Nav, Navbar, Spinner } from 'react-bootstrap';
+import { Container, Nav, Navbar } from 'react-bootstrap';
 import Dashboard from './components/Dashboard';
 import Products from './components/Products';
 import Transactions from './components/Transactions';
@@ -9,9 +9,7 @@ import ProductDetail from './components/ProductDetail';
 import CreateProduct from './components/CreateProduct';
 import { AlgorandContext } from './contexts/AlgorandContext';
 import { initAlgorand } from './utils/algorand';
-import { ToastContainer } from 'react-toastify';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import 'react-toastify/dist/ReactToastify.css';
 import './styles/App.css';
 
 function App() {
@@ -42,9 +40,9 @@ function App() {
     return (
       <Container className="d-flex justify-content-center align-items-center min-vh-100">
         <div className="text-center">
-          <Spinner animation="border" variant="primary" role="status">
+          <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading...</span>
-          </Spinner>
+          </div>
           <p className="mt-3">Connecting to Algorand network...</p>
         </div>
       </Container>
@@ -75,7 +73,6 @@ function App() {
         </Navbar>
 
         <Container className="py-3">
-          <ToastContainer position="top-right" autoClose={5000} />
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/products" element={<Products />} />
@@ -96,7 +93,7 @@ function App() {
               <div>
                 {account && (
                   <small>
-                    Connected to {algod ? 'Algorand TestNet' : 'No Network'}<br />
+                    Connected to {algod ? 'Algorand Network' : 'No Network'}<br />
                     Account: {account.address.substring(0, 8)}...{account.address.substring(account.address.length - 4)}
                   </small>
                 )}

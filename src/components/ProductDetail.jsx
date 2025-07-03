@@ -1,210 +1,125 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Table, Badge, Alert, Form, Modal, Image, Tabs, Tab } from 'react-bootstrap';
+import { useParams, Link } from 'react-router-dom';
+import { Container, Row, Col, Card, Button, Table, Badge, Alert, Form, Modal } from 'react-bootstrap';
 import { AlgorandContext } from '../contexts/AlgorandContext';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { getAssetInfo, callApp } from '../utils/algorand';
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { algod, account, isConnected, connectWallet, getAssetInfo, updateAssetQuantity, transferAsset, getTransactionHistory } = useContext(AlgorandContext);
-  
+  const { algod, account, appIds } = useContext(AlgorandContext);
   const [product, setProduct] = useState(null);
-  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState(null);
-  
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateQuantity, setUpdateQuantity] = useState(0);
   const [updateType, setUpdateType] = useState('add');
-  
-  const [showTransferModal, setShowTransferModal] = useState(false);
-  const [transferAmount, setTransferAmount] = useState(1);
-  const [receiverAddress, setReceiverAddress] = useState('');
+  const [transactionHistory, setTransactionHistory] = useState([]);
   
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
-        if (!isConnected) {
-          return;
-        }
-        
-        setLoading(true);
-        
-        if (id) {
-          // Fetch product details
-          const assetInfo = await getAssetInfo(parseInt(id));
-          setProduct(assetInfo);
+        if (algod && account) {
+          // In a real application, you would fetch this data from the blockchain
+          // For now, we'll use mock data
+          const mockProduct = { 
+            id: parseInt(id), 
+            name: `Product ${id}`, 
+            quantity: 65, 
+            minThreshold: 25, 
+            price: 19.99, 
+            location: 'Warehouse 1', 
+            supplier: 'Supplier X',
+            assetId: 12345,
+            lastUpdated: '2023-11-10',
+            status: 'active',
+            description: 'This is a detailed description of the product. It includes information about the product specifications, usage, and other relevant details.',
+            expirationDate: '2024-12-31',
+            createdAt: '2023-01-15',
+            metadata: {
+              weight: '1.5 kg',
+              dimensions: '10 x 15 x 5 cm',
+              category: 'Electronics',
+              sku: 'SKU12345'
+            }
+          };
           
-          // Fetch transaction history
-          const txHistory = await getTransactionHistory(parseInt(id));
-          setTransactions(txHistory);
+          setProduct(mockProduct);
+          
+          // Mock transaction history
+          setTransactionHistory([
+            { id: 1, type: 'Restock', quantity: 50, date: '2023-11-10', user: 'Admin' },
+            { id: 2, type: 'Sale', quantity: -10, date: '2023-11-08', user: 'System' },
+            { id: 3, type: 'Adjustment', quantity: -5, date: '2023-11-05', user: 'Admin' },
+            { id: 4, type: 'Restock', quantity: 30, date: '2023-10-28', user: 'Admin' }
+          ]);
         }
       } catch (err) {
         console.error('Error fetching product details:', err);
         setError('Failed to load product details. Please try again later.');
-        toast.error('Failed to load product details');
       } finally {
         setLoading(false);
       }
     };
     
     fetchProductDetails();
-  }, [id, isConnected, getAssetInfo, getTransactionHistory]);
+  }, [algod, account, id]);
   
   const handleUpdateQuantity = async () => {
     try {
-      setActionLoading(true);
+      setLoading(true);
       
       // Calculate the new quantity
       const quantityChange = updateType === 'add' ? parseInt(updateQuantity) : -parseInt(updateQuantity);
-      const newQuantity = product.total + quantityChange;
+      const newQuantity = product.quantity + quantityChange;
       
       if (newQuantity < 0) {
         setError('Quantity cannot be negative');
-        toast.error('Quantity cannot be negative');
         return;
       }
       
-      // Update the quantity on the blockchain
-      await updateAssetQuantity(parseInt(id), newQuantity);
-      
-      // Update the local state
+      // In a real application, you would call the smart contract to update the quantity
+      // For now, we'll just update the local state
       setProduct({
         ...product,
-        total: newQuantity,
-        metadata: {
-          ...product.metadata,
-          updatedAt: new Date().toISOString()
-        }
+        quantity: newQuantity,
+        lastUpdated: new Date().toISOString().split('T')[0],
+        status: newQuantity < product.minThreshold ? (newQuantity < product.minThreshold / 2 ? 'critical' : 'low') : 'active'
       });
       
       // Add to transaction history
-      const newTransaction = {
-        id: `TX${Date.now()}`,
-        type: updateType === 'add' ? 'Restock' : 'Adjustment',
-        product: product.name,
-        assetId: parseInt(id),
-        quantity: quantityChange,
-        date: new Date().toISOString(),
-        sender: account.addr,
-        receiver: account.addr,
-        txId: `ALGOTX${Date.now()}`,
-        confirmed: true
-      };
-      
-      setTransactions([newTransaction, ...transactions]);
+      setTransactionHistory([
+        {
+          id: transactionHistory.length + 1,
+          type: updateType === 'add' ? 'Restock' : 'Adjustment',
+          quantity: quantityChange,
+          date: new Date().toISOString().split('T')[0],
+          user: 'Admin'
+        },
+        ...transactionHistory
+      ]);
       
       setShowUpdateModal(false);
       setUpdateQuantity(0);
-      toast.success(`Quantity ${updateType === 'add' ? 'increased' : 'decreased'} successfully`);
     } catch (err) {
       console.error('Error updating quantity:', err);
       setError('Failed to update quantity. Please try again later.');
-      toast.error('Failed to update quantity');
     } finally {
-      setActionLoading(false);
+      setLoading(false);
     }
   };
   
-  const handleTransferProduct = async () => {
-    try {
-      setActionLoading(true);
-      
-      if (!receiverAddress) {
-        toast.error('Receiver address is required');
-        return;
-      }
-      
-      if (transferAmount <= 0 || transferAmount > product.total) {
-        toast.error(`Amount must be between 1 and ${product.total}`);
-        return;
-      }
-      
-      // Transfer the asset on the blockchain
-      await transferAsset(parseInt(id), receiverAddress, transferAmount);
-      
-      // Update the local state
-      setProduct({
-        ...product,
-        total: product.total - transferAmount,
-        metadata: {
-          ...product.metadata,
-          updatedAt: new Date().toISOString()
-        }
-      });
-      
-      // Add to transaction history
-      const newTransaction = {
-        id: `TX${Date.now()}`,
-        type: 'Transfer',
-        product: product.name,
-        assetId: parseInt(id),
-        quantity: -transferAmount,
-        date: new Date().toISOString(),
-        sender: account.addr,
-        receiver: receiverAddress,
-        txId: `ALGOTX${Date.now()}`,
-        confirmed: true
-      };
-      
-      setTransactions([newTransaction, ...transactions]);
-      
-      setShowTransferModal(false);
-      setTransferAmount(1);
-      setReceiverAddress('');
-      toast.success('Product transferred successfully');
-    } catch (err) {
-      console.error('Error transferring product:', err);
-      setError('Failed to transfer product. Please try again later.');
-      toast.error('Failed to transfer product');
-    } finally {
-      setActionLoading(false);
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'active':
+        return <Badge bg="success">Normal</Badge>;
+      case 'low':
+        return <Badge bg="warning">Low Stock</Badge>;
+      case 'critical':
+        return <Badge bg="danger">Critical</Badge>;
+      default:
+        return <Badge bg="secondary">{status}</Badge>;
     }
   };
-  
-  const getStatusBadge = () => {
-    if (!product) return null;
-    
-    const quantity = product.total;
-    const minThreshold = product.metadata?.minThreshold || 0;
-    
-    if (quantity <= minThreshold / 2) {
-      return <Badge bg="danger">Critical</Badge>;
-    } else if (quantity <= minThreshold) {
-      return <Badge bg="warning">Low Stock</Badge>;
-    } else {
-      return <Badge bg="success">Normal</Badge>;
-    }
-  };
-  
-  if (!isConnected) {
-    return (
-      <Container>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h1>Product Details</h1>
-          <Button as={Link} to="/products" variant="secondary">Back to Products</Button>
-        </div>
-        
-        <Card className="shadow-sm text-center p-5">
-          <Card.Body>
-            <h2 className="mb-4">Connect Your Wallet</h2>
-            <p className="mb-4">You need to connect your wallet to view product details.</p>
-            <Button 
-              variant="primary" 
-              size="lg" 
-              onClick={connectWallet}
-              disabled={loading}
-            >
-              {loading ? 'Connecting...' : 'Connect Wallet'}
-            </Button>
-          </Card.Body>
-        </Card>
-      </Container>
-    );
-  }
   
   if (loading) {
     return (
@@ -217,7 +132,7 @@ const ProductDetail = () => {
     );
   }
   
-  if (error && !product) {
+  if (error) {
     return (
       <Container className="my-5">
         <Alert variant="danger">{error}</Alert>
@@ -235,127 +150,70 @@ const ProductDetail = () => {
     );
   }
   
-  const isLowStock = product.total <= (product.metadata?.minThreshold || 0);
-  const formattedCreatedDate = new Date(product.metadata?.createdAt || Date.now()).toLocaleDateString();
-  const formattedUpdatedDate = new Date(product.metadata?.updatedAt || Date.now()).toLocaleDateString();
-  
   return (
     <Container>
-      <ToastContainer position="top-right" autoClose={5000} />
-      
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Product Details</h1>
         <Button as={Link} to="/products" variant="secondary">Back to Products</Button>
       </div>
       
-      {error && (
-        <Alert variant="danger" className="mb-4" dismissible onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-      
       <Row>
-        <Col lg={8}>
+        <Col md={8}>
           <Card className="mb-4 shadow-sm">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-start mb-3">
                 <div>
                   <h2>{product.name}</h2>
-                  <p className="text-muted">Asset ID: {id} | Unit: {product['unit-name']}</p>
+                  <p className="text-muted">ID: {product.id} | Asset ID: {product.assetId}</p>
                 </div>
                 <div>
-                  {getStatusBadge()}
+                  {getStatusBadge(product.status)}
                 </div>
               </div>
               
-              <Row>
-                <Col md={product.metadata?.imageUrl ? 8 : 12}>
-                  <p className="mb-4">{product.metadata?.description || 'No description available.'}</p>
-                  
-                  <Tabs defaultActiveKey="details" className="mb-3">
-                    <Tab eventKey="details" title="Details">
-                      <Table bordered>
-                        <tbody>
-                          <tr>
-                            <th width="30%">Price</th>
-                            <td>${product.metadata?.price?.toFixed(2) || '0.00'}</td>
-                          </tr>
-                          <tr>
-                            <th>Location</th>
-                            <td>{product.metadata?.location || 'Not specified'}</td>
-                          </tr>
-                          <tr>
-                            <th>Supplier</th>
-                            <td>{product.metadata?.supplier || 'Not specified'}</td>
-                          </tr>
-                          <tr>
-                            <th>Created</th>
-                            <td>{formattedCreatedDate}</td>
-                          </tr>
-                          <tr>
-                            <th>Last Updated</th>
-                            <td>{formattedUpdatedDate}</td>
-                          </tr>
-                          <tr>
-                            <th>Expiration</th>
-                            <td>{product.metadata?.expirationDate || 'Not specified'}</td>
-                          </tr>
-                        </tbody>
-                      </Table>
-                    </Tab>
-                    <Tab eventKey="blockchain" title="Blockchain Info">
-                      <Table bordered>
-                        <tbody>
-                          <tr>
-                            <th width="30%">Asset ID</th>
-                            <td>{id}</td>
-                          </tr>
-                          <tr>
-                            <th>Creator</th>
-                            <td className="text-truncate">
-                              {product.creator || account?.addr || 'Unknown'}
-                            </td>
-                          </tr>
-                          <tr>
-                            <th>Manager</th>
-                            <td className="text-truncate">
-                              {product.manager || account?.addr || 'Unknown'}
-                            </td>
-                          </tr>
-                          <tr>
-                            <th>Reserve</th>
-                            <td className="text-truncate">
-                              {product.reserve || account?.addr || 'Unknown'}
-                            </td>
-                          </tr>
-                          <tr>
-                            <th>Freeze</th>
-                            <td className="text-truncate">
-                              {product.freeze || account?.addr || 'Unknown'}
-                            </td>
-                          </tr>
-                          <tr>
-                            <th>Clawback</th>
-                            <td className="text-truncate">
-                              {product.clawback || account?.addr || 'Unknown'}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </Table>
-                    </Tab>
-                  </Tabs>
+              <p>{product.description}</p>
+              
+              <Row className="mt-4">
+                <Col md={6}>
+                  <h5>Product Information</h5>
+                  <Table bordered>
+                    <tbody>
+                      <tr>
+                        <th>Price</th>
+                        <td>${product.price.toFixed(2)}</td>
+                      </tr>
+                      <tr>
+                        <th>Location</th>
+                        <td>{product.location}</td>
+                      </tr>
+                      <tr>
+                        <th>Supplier</th>
+                        <td>{product.supplier}</td>
+                      </tr>
+                      <tr>
+                        <th>Created</th>
+                        <td>{product.createdAt}</td>
+                      </tr>
+                      <tr>
+                        <th>Expiration</th>
+                        <td>{product.expirationDate}</td>
+                      </tr>
+                    </tbody>
+                  </Table>
                 </Col>
-                
-                {product.metadata?.imageUrl && (
-                  <Col md={4} className="text-center">
-                    <Image 
-                      src={product.metadata.imageUrl} 
-                      alt={product.name} 
-                      className="img-fluid rounded shadow-sm" 
-                      style={{ maxHeight: '250px' }}
-                    />
-                  </Col>
-                )}
+                <Col md={6}>
+                  <h5>Metadata</h5>
+                  <Table bordered>
+                    <tbody>
+                      {Object.entries(product.metadata).map(([key, value]) => (
+                        <tr key={key}>
+                          <th>{key.charAt(0).toUpperCase() + key.slice(1)}</th>
+                          <td>{value}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </Col>
               </Row>
             </Card.Body>
           </Card>
@@ -367,51 +225,27 @@ const ProductDetail = () => {
                 <Table striped hover>
                   <thead>
                     <tr>
+                      <th>ID</th>
                       <th>Type</th>
                       <th>Quantity</th>
                       <th>Date</th>
-                      <th>Sender</th>
-                      <th>Receiver</th>
-                      <th>Status</th>
+                      <th>User</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {transactions.length > 0 ? (
-                      transactions.map(tx => (
-                        <tr key={tx.id}>
-                          <td>
-                            <span className={`badge ${
-                              tx.type === 'Sale' || tx.type === 'Transfer' ? 'bg-danger' : 
-                              tx.type === 'Restock' ? 'bg-success' : 
-                              'bg-warning'
-                            }`}>
-                              {tx.type}
-                            </span>
-                          </td>
-                          <td className={tx.quantity >= 0 ? 'text-success' : 'text-danger'}>
-                            {tx.quantity > 0 ? `+${tx.quantity}` : tx.quantity}
-                          </td>
-                          <td>{new Date(tx.date).toLocaleString()}</td>
-                          <td className="text-truncate" style={{maxWidth: '150px'}}>
-                            {tx.sender.substring(0, 8)}...{tx.sender.substring(tx.sender.length - 4)}
-                          </td>
-                          <td className="text-truncate" style={{maxWidth: '150px'}}>
-                            {tx.receiver.substring(0, 8)}...{tx.receiver.substring(tx.receiver.length - 4)}
-                          </td>
-                          <td>
-                            {tx.confirmed ? (
-                              <Badge bg="success">Confirmed</Badge>
-                            ) : (
-                              <Badge bg="warning">Pending</Badge>
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="6" className="text-center">No transaction history available</td>
+                    {transactionHistory.map(tx => (
+                      <tr key={tx.id}>
+                        <td>{tx.id}</td>
+                        <td>
+                          <span className={`badge ${tx.type === 'Sale' ? 'bg-danger' : tx.type === 'Restock' ? 'bg-success' : 'bg-warning'}`}>
+                            {tx.type}
+                          </span>
+                        </td>
+                        <td>{tx.quantity > 0 ? `+${tx.quantity}` : tx.quantity}</td>
+                        <td>{tx.date}</td>
+                        <td>{tx.user}</td>
                       </tr>
-                    )}
+                    ))}
                   </tbody>
                 </Table>
               </div>
@@ -419,36 +253,26 @@ const ProductDetail = () => {
           </Card>
         </Col>
         
-        <Col lg={4}>
+        <Col md={4}>
           <Card className="mb-4 shadow-sm">
             <Card.Body className="text-center">
               <h5>Current Stock</h5>
               <div className="inventory-meter my-3">
                 <div 
-                  className={`progress-bar ${isLowStock ? 'bg-danger' : 'bg-success'}`} 
-                  style={{ 
-                    width: `${Math.min(100, (product.total / ((product.metadata?.minThreshold || 10) * 2)) * 100)}%` 
-                  }}
+                  className={`progress-bar ${product.quantity < product.minThreshold ? 'bg-danger' : 'bg-success'}`} 
+                  style={{ width: `${Math.min(100, (product.quantity / (product.minThreshold * 2)) * 100)}%` }}
                 ></div>
               </div>
-              <h2 className="display-4">{product.total}</h2>
-              <p className="text-muted">Minimum Threshold: {product.metadata?.minThreshold || 'Not set'}</p>
-              <p className="text-muted">Last Updated: {formattedUpdatedDate}</p>
+              <h2 className="display-4">{product.quantity}</h2>
+              <p className="text-muted">Minimum Threshold: {product.minThreshold}</p>
+              <p className="text-muted">Last Updated: {product.lastUpdated}</p>
               
               <div className="d-grid gap-2 mt-3">
-                <Button 
-                  variant="primary" 
-                  onClick={() => setShowUpdateModal(true)}
-                  disabled={actionLoading}
-                >
+                <Button variant="primary" onClick={() => setShowUpdateModal(true)}>
                   Update Quantity
                 </Button>
-                <Button 
-                  variant="outline-primary"
-                  onClick={() => setShowTransferModal(true)}
-                  disabled={actionLoading || product.total <= 0}
-                >
-                  Transfer Product
+                <Button variant="outline-secondary">
+                  Audit Product
                 </Button>
               </div>
             </Card.Body>
@@ -458,11 +282,9 @@ const ProductDetail = () => {
             <Card.Body>
               <h5>Quick Actions</h5>
               <div className="d-grid gap-2">
-                {isLowStock && (
-                  <Button variant="warning">
-                    <i className="bi bi-truck"></i> Order Restock
-                  </Button>
-                )}
+                <Button variant="outline-primary">
+                  <i className="bi bi-truck"></i> Order Restock
+                </Button>
                 <Button variant="outline-secondary">
                   <i className="bi bi-arrow-left-right"></i> Transfer Location
                 </Button>
@@ -478,30 +300,26 @@ const ProductDetail = () => {
           
           <Card className="shadow-sm">
             <Card.Body>
-              <h5>Product Value</h5>
+              <h5>Blockchain Information</h5>
               <Table bordered size="sm">
                 <tbody>
                   <tr>
-                    <th>Unit Price</th>
-                    <td>${product.metadata?.price?.toFixed(2) || '0.00'}</td>
+                    <th>Asset ID</th>
+                    <td>{product.assetId}</td>
                   </tr>
                   <tr>
-                    <th>Total Value</th>
-                    <td>${((product.metadata?.price || 0) * product.total).toFixed(2)}</td>
+                    <th>Contract</th>
+                    <td>{appIds?.inventory_app_id || 'Not deployed'}</td>
                   </tr>
                   <tr>
-                    <th>Value at Min Threshold</th>
-                    <td>${((product.metadata?.price || 0) * (product.metadata?.minThreshold || 0)).toFixed(2)}</td>
+                    <th>Last Transaction</th>
+                    <td>Round #12345678</td>
                   </tr>
                 </tbody>
               </Table>
               <div className="d-grid mt-3">
-                <Button 
-                  variant="outline-secondary" 
-                  size="sm"
-                  onClick={() => window.open(`https://testnet.algoexplorer.io/asset/${id}`, '_blank')}
-                >
-                  View on AlgoExplorer
+                <Button variant="outline-secondary" size="sm">
+                  View on Explorer
                 </Button>
               </div>
             </Card.Body>
@@ -534,11 +352,6 @@ const ProductDetail = () => {
                 value={updateQuantity} 
                 onChange={(e) => setUpdateQuantity(e.target.value)}
               />
-              {updateType === 'remove' && (
-                <Form.Text className="text-muted">
-                  Maximum removal: {product.total}
-                </Form.Text>
-              )}
             </Form.Group>
           </Form>
         </Modal.Body>
@@ -546,73 +359,8 @@ const ProductDetail = () => {
           <Button variant="secondary" onClick={() => setShowUpdateModal(false)}>
             Cancel
           </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleUpdateQuantity}
-            disabled={actionLoading || updateQuantity <= 0 || (updateType === 'remove' && updateQuantity > product.total)}
-          >
-            {actionLoading ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Updating...
-              </>
-            ) : 'Update'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-      
-      {/* Transfer Product Modal */}
-      <Modal show={showTransferModal} onHide={() => setShowTransferModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Transfer Product</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Receiver Address</Form.Label>
-              <Form.Control 
-                type="text" 
-                value={receiverAddress} 
-                onChange={(e) => setReceiverAddress(e.target.value)}
-                placeholder="Enter Algorand address"
-                required
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Amount</Form.Label>
-              <Form.Control 
-                type="number" 
-                min="1" 
-                max={product.total}
-                value={transferAmount} 
-                onChange={(e) => setTransferAmount(parseInt(e.target.value))}
-              />
-              <Form.Text className="text-muted">
-                Available: {product.total}
-              </Form.Text>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowTransferModal(false)}>
-            Cancel
-          </Button>
-          <Button 
-            variant="primary" 
-            onClick={handleTransferProduct}
-            disabled={
-              actionLoading || 
-              !receiverAddress || 
-              transferAmount <= 0 || 
-              transferAmount > product.total
-            }
-          >
-            {actionLoading ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Transferring...
-              </>
-            ) : 'Transfer'}
+          <Button variant="primary" onClick={handleUpdateQuantity}>
+            Update
           </Button>
         </Modal.Footer>
       </Modal>

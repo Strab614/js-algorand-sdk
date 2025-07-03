@@ -2,104 +2,121 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Container, Row, Col, Card, Button, Form, InputGroup, Table, Badge, Alert } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { AlgorandContext } from '../contexts/AlgorandContext';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { getAssetInfo } from '../utils/algorand';
 
 const Products = () => {
-  const { algod, account, isConnected, connectWallet, getAssetInfo } = useContext(AlgorandContext);
+  const { algod, account, appIds } = useContext(AlgorandContext);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
-  const [sortDirection, setSortDirection] = useState('asc');
   
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        if (!isConnected) {
-          return;
+        if (algod && account) {
+          // In a real application, you would fetch this data from the blockchain
+          // For now, we'll use mock data
+          const mockProducts = [
+            { 
+              id: 1001, 
+              name: 'Widget A', 
+              quantity: 65, 
+              minThreshold: 25, 
+              price: 19.99, 
+              location: 'Warehouse 1', 
+              supplier: 'Supplier X',
+              assetId: 12345,
+              lastUpdated: '2023-11-10',
+              status: 'active'
+            },
+            { 
+              id: 1002, 
+              name: 'Gadget B', 
+              quantity: 20, 
+              minThreshold: 10, 
+              price: 49.99, 
+              location: 'Warehouse 2', 
+              supplier: 'Supplier Y',
+              assetId: 12346,
+              lastUpdated: '2023-11-12',
+              status: 'active'
+            },
+            { 
+              id: 1003, 
+              name: 'Tool C', 
+              quantity: 15, 
+              minThreshold: 30, 
+              price: 29.99, 
+              location: 'Warehouse 1', 
+              supplier: 'Supplier Z',
+              assetId: 12347,
+              lastUpdated: '2023-11-14',
+              status: 'low'
+            },
+            { 
+              id: 1004, 
+              name: 'Part D', 
+              quantity: 81, 
+              minThreshold: 40, 
+              price: 9.99, 
+              location: 'Warehouse 3', 
+              supplier: 'Supplier X',
+              assetId: 12348,
+              lastUpdated: '2023-11-15',
+              status: 'active'
+            },
+            { 
+              id: 1005, 
+              name: 'Component E', 
+              quantity: 5, 
+              minThreshold: 20, 
+              price: 39.99, 
+              location: 'Warehouse 2', 
+              supplier: 'Supplier Y',
+              assetId: 12349,
+              lastUpdated: '2023-11-13',
+              status: 'critical'
+            },
+            { 
+              id: 1006, 
+              name: 'Material F', 
+              quantity: 40, 
+              minThreshold: 15, 
+              price: 14.99, 
+              location: 'Warehouse 1', 
+              supplier: 'Supplier Z',
+              assetId: 12350,
+              lastUpdated: '2023-11-11',
+              status: 'active'
+            }
+          ];
+          
+          setProducts(mockProducts);
         }
-        
-        setLoading(true);
-        
-        // In a real application, you would fetch this data from the blockchain
-        // For now, we'll use mock data
-        const mockProductIds = [1001, 1002, 1003, 1004, 1005, 1006];
-        const productPromises = mockProductIds.map(id => getAssetInfo(id));
-        const productDetails = await Promise.all(productPromises);
-        
-        const formattedProducts = productDetails.map((product, index) => ({
-          id: mockProductIds[index],
-          name: product.name,
-          unitName: product['unit-name'],
-          quantity: product.total,
-          minThreshold: product.metadata?.minThreshold || 0,
-          price: product.metadata?.price || 0,
-          location: product.metadata?.location || 'Unknown',
-          supplier: product.metadata?.supplier || 'Unknown',
-          imageUrl: product.metadata?.imageUrl,
-          lastUpdated: product.metadata?.updatedAt || new Date().toISOString(),
-          status: getProductStatus(product.total, product.metadata?.minThreshold || 0)
-        }));
-        
-        setProducts(formattedProducts);
       } catch (err) {
         console.error('Error fetching products:', err);
         setError('Failed to load products. Please try again later.');
-        toast.error('Failed to load products');
       } finally {
         setLoading(false);
       }
     };
     
     fetchProducts();
-  }, [isConnected, getAssetInfo]);
-  
-  const getProductStatus = (quantity, minThreshold) => {
-    if (quantity <= minThreshold / 2) return 'critical';
-    if (quantity <= minThreshold) return 'low';
-    return 'active';
-  };
+  }, [algod, account]);
   
   // Filter and search products
   const filteredProducts = products.filter(product => {
-    const matchesSearch = 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.unitName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          product.supplier.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          product.location.toLowerCase().includes(searchTerm.toLowerCase());
     
     if (filter === 'all') return matchesSearch;
     if (filter === 'low') return matchesSearch && product.status === 'low';
     if (filter === 'critical') return matchesSearch && product.status === 'critical';
     
     return matchesSearch;
-  });
-  
-  // Sort products
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    let comparison = 0;
-    
-    switch (sortBy) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name);
-        break;
-      case 'quantity':
-        comparison = a.quantity - b.quantity;
-        break;
-      case 'price':
-        comparison = a.price - b.price;
-        break;
-      case 'lastUpdated':
-        comparison = new Date(a.lastUpdated) - new Date(b.lastUpdated);
-        break;
-      default:
-        comparison = 0;
-    }
-    
-    return sortDirection === 'asc' ? comparison : -comparison;
   });
   
   const getStatusBadge = (status) => {
@@ -115,41 +132,6 @@ const Products = () => {
     }
   };
   
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortDirection('asc');
-    }
-  };
-  
-  if (!isConnected) {
-    return (
-      <Container>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h1>Products</h1>
-          <Button variant="primary" onClick={connectWallet}>Connect Wallet</Button>
-        </div>
-        
-        <Card className="shadow-sm text-center p-5">
-          <Card.Body>
-            <h2 className="mb-4">Connect Your Wallet</h2>
-            <p className="mb-4">You need to connect your wallet to view products.</p>
-            <Button 
-              variant="primary" 
-              size="lg" 
-              onClick={connectWallet}
-              disabled={loading}
-            >
-              {loading ? 'Connecting...' : 'Connect Wallet'}
-            </Button>
-          </Card.Body>
-        </Card>
-      </Container>
-    );
-  }
-  
   if (loading) {
     return (
       <Container className="text-center my-5">
@@ -161,10 +143,16 @@ const Products = () => {
     );
   }
   
+  if (error) {
+    return (
+      <Container className="my-5">
+        <Alert variant="danger">{error}</Alert>
+      </Container>
+    );
+  }
+  
   return (
     <Container>
-      <ToastContainer position="top-right" autoClose={5000} />
-      
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Products</h1>
         <Link to="/products/create">
@@ -172,16 +160,10 @@ const Products = () => {
         </Link>
       </div>
       
-      {error && (
-        <Alert variant="danger" className="mb-4" dismissible onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-      
       <Card className="mb-4 shadow-sm">
         <Card.Body>
           <Row>
-            <Col md={6} lg={4}>
+            <Col md={6}>
               <InputGroup className="mb-3">
                 <Form.Control
                   placeholder="Search products..."
@@ -193,8 +175,8 @@ const Products = () => {
                 </Button>
               </InputGroup>
             </Col>
-            <Col md={6} lg={3}>
-              <Form.Group className="mb-3">
+            <Col md={6}>
+              <Form.Group>
                 <Form.Select 
                   value={filter} 
                   onChange={(e) => setFilter(e.target.value)}
@@ -205,116 +187,68 @@ const Products = () => {
                 </Form.Select>
               </Form.Group>
             </Col>
-            <Col lg={5}>
-              <div className="d-flex gap-2">
-                <Form.Group className="mb-3 flex-grow-1">
-                  <Form.Select 
-                    value={sortBy} 
-                    onChange={(e) => handleSort(e.target.value)}
-                  >
-                    <option value="name">Sort by Name</option>
-                    <option value="quantity">Sort by Quantity</option>
-                    <option value="price">Sort by Price</option>
-                    <option value="lastUpdated">Sort by Last Updated</option>
-                  </Form.Select>
-                </Form.Group>
-                <Button 
-                  variant="outline-secondary" 
-                  className="mb-3"
-                  onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
-                >
-                  {sortDirection === 'asc' ? '↑' : '↓'}
-                </Button>
-              </div>
-            </Col>
           </Row>
         </Card.Body>
       </Card>
       
-      {sortedProducts.length === 0 ? (
-        <Card className="shadow-sm text-center p-5">
-          <Card.Body>
-            <h3>No products found</h3>
-            <p className="mb-4">Try adjusting your search or filter criteria, or add a new product.</p>
-            <Link to="/products/create">
-              <Button variant="primary">Add New Product</Button>
-            </Link>
-          </Card.Body>
-        </Card>
-      ) : (
-        <Row>
-          {sortedProducts.map(product => (
-            <Col key={product.id} md={6} lg={4} className="mb-4">
-              <Card className="h-100 shadow-sm product-card">
-                <Link to={`/products/${product.id}`} className="text-decoration-none">
-                  {product.imageUrl && (
-                    <div className="product-image-container">
-                      <Card.Img 
-                        variant="top" 
-                        src={product.imageUrl} 
-                        alt={product.name}
-                        className="product-image"
-                      />
-                    </div>
-                  )}
-                  <Card.Body>
-                    <div className="d-flex justify-content-between align-items-start">
-                      <div>
-                        <Card.Title>{product.name}</Card.Title>
-                        <Card.Subtitle className="mb-2 text-muted">{product.unitName}</Card.Subtitle>
-                      </div>
-                      <div>
-                        {getStatusBadge(product.status)}
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3">
-                      <div className="d-flex justify-content-between mb-1">
-                        <span>Quantity:</span>
-                        <span className={product.status !== 'active' ? 'text-danger' : ''}>
-                          {product.quantity}
-                        </span>
-                      </div>
-                      <div className="progress mb-3" style={{ height: '6px' }}>
-                        <div 
-                          className={`progress-bar ${
-                            product.status === 'critical' ? 'bg-danger' : 
-                            product.status === 'low' ? 'bg-warning' : 
-                            'bg-success'
-                          }`}
-                          style={{ 
-                            width: `${Math.min(100, (product.quantity / (product.minThreshold * 2)) * 100)}%` 
-                          }}
-                        ></div>
-                      </div>
-                      
-                      <div className="d-flex justify-content-between">
-                        <span>Price:</span>
-                        <span>${product.price.toFixed(2)}</span>
-                      </div>
-                      
-                      <div className="d-flex justify-content-between">
-                        <span>Location:</span>
-                        <span>{product.location}</span>
-                      </div>
-                      
-                      <div className="d-flex justify-content-between">
-                        <span>Min Threshold:</span>
-                        <span>{product.minThreshold}</span>
-                      </div>
-                    </div>
-                  </Card.Body>
-                  <Card.Footer className="bg-white">
-                    <small className="text-muted">
-                      Last updated: {new Date(product.lastUpdated).toLocaleDateString()}
-                    </small>
-                  </Card.Footer>
-                </Link>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
+      <Card className="shadow-sm">
+        <Card.Body>
+          <div className="table-responsive">
+            <Table striped hover>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Quantity</th>
+                  <th>Price</th>
+                  <th>Location</th>
+                  <th>Supplier</th>
+                  <th>Status</th>
+                  <th>Last Updated</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProducts.length > 0 ? (
+                  filteredProducts.map(product => (
+                    <tr key={product.id}>
+                      <td>{product.id}</td>
+                      <td>{product.name}</td>
+                      <td>
+                        {product.quantity}
+                        {product.quantity < product.minThreshold && (
+                          <span className="ms-2 text-danger">
+                            <i className="bi bi-exclamation-triangle-fill"></i>
+                          </span>
+                        )}
+                      </td>
+                      <td>${product.price.toFixed(2)}</td>
+                      <td>{product.location}</td>
+                      <td>{product.supplier}</td>
+                      <td>{getStatusBadge(product.status)}</td>
+                      <td>{product.lastUpdated}</td>
+                      <td>
+                        <Link to={`/products/${product.id}`}>
+                          <Button variant="outline-primary" size="sm" className="me-1">
+                            View
+                          </Button>
+                        </Link>
+                        <Button variant="outline-secondary" size="sm">
+                          Edit
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="9" className="text-center">No products found</td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </div>
+        </Card.Body>
+      </Card>
     </Container>
   );
 };

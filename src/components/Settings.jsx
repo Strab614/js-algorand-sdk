@@ -1,11 +1,10 @@
 import React, { useState, useContext } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Table } from 'react-bootstrap';
 import { AlgorandContext } from '../contexts/AlgorandContext';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { callApp } from '../utils/algorand';
 
 const Settings = () => {
-  const { algod, account, isConnected, connectWallet, appIds } = useContext(AlgorandContext);
+  const { algod, account, appIds } = useContext(AlgorandContext);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -20,7 +19,7 @@ const Settings = () => {
   
   // Mock users for demonstration
   const [users, setUsers] = useState([
-    { address: account?.addr || '', role: 1, roleName: 'Admin' },
+    { address: account?.address || '', role: 1, roleName: 'Admin' },
     { address: 'XBYLS2E6YI6XXL5BWCAMOA4GTWHXWENZMX5UHXMRNWWUQ7BXCY5WC5TEPA', role: 2, roleName: 'Manager' },
     { address: '4H5UNRBJ2Q6JENAXQ6HNTGKLKINP4J4VTQBEPK5F3I6RDICMZBPGNH6KD4', role: 3, roleName: 'Operator' }
   ]);
@@ -32,16 +31,10 @@ const Settings = () => {
     setSuccess(null);
     
     try {
-      if (!isConnected) {
-        await connectWallet();
-      }
-      
       if (!algod || !account) {
         throw new Error('Algorand connection not established');
       }
       
-      // Check if security contract is deployed
-      // Note: In this mock version, we're using non-zero values for testing
       if (!appIds || !appIds.security_app_id) {
         throw new Error('Security contract not deployed');
       }
@@ -69,13 +62,11 @@ const Settings = () => {
       ]);
       
       setSuccess('User added successfully!');
-      toast.success('User added successfully!');
       setNewUser({ address: '', role: '3' });
       
     } catch (err) {
       console.error('Error adding user:', err);
       setError(err.message || 'Failed to add user. Please try again later.');
-      toast.error(err.message || 'Failed to add user');
     } finally {
       setLoading(false);
     }
@@ -87,10 +78,6 @@ const Settings = () => {
     setSuccess(null);
     
     try {
-      if (!isConnected) {
-        await connectWallet();
-      }
-      
       if (!algod || !account) {
         throw new Error('Algorand connection not established');
       }
@@ -110,12 +97,10 @@ const Settings = () => {
       setUsers(users.filter(user => user.address !== address));
       
       setSuccess('User removed successfully!');
-      toast.success('User removed successfully!');
       
     } catch (err) {
       console.error('Error removing user:', err);
       setError(err.message || 'Failed to remove user. Please try again later.');
-      toast.error(err.message || 'Failed to remove user');
     } finally {
       setLoading(false);
     }
@@ -128,10 +113,6 @@ const Settings = () => {
     setSuccess(null);
     
     try {
-      if (!isConnected) {
-        await connectWallet();
-      }
-      
       if (!algod || !account) {
         throw new Error('Algorand connection not established');
       }
@@ -148,12 +129,10 @@ const Settings = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setSuccess('Check interval updated successfully!');
-      toast.success('Check interval updated successfully!');
       
     } catch (err) {
       console.error('Error updating check interval:', err);
       setError(err.message || 'Failed to update check interval. Please try again later.');
-      toast.error(err.message || 'Failed to update check interval');
     } finally {
       setLoading(false);
     }
@@ -165,10 +144,6 @@ const Settings = () => {
     setSuccess(null);
     
     try {
-      if (!isConnected) {
-        await connectWallet();
-      }
-      
       if (!algod || !account) {
         throw new Error('Algorand connection not established');
       }
@@ -185,54 +160,27 @@ const Settings = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       setSuccess('Data backup initiated successfully! The backup will be stored on IPFS and the reference will be recorded on the blockchain.');
-      toast.success('Data backup initiated successfully!');
       
     } catch (err) {
       console.error('Error backing up data:', err);
       setError(err.message || 'Failed to backup data. Please try again later.');
-      toast.error(err.message || 'Failed to backup data');
     } finally {
       setLoading(false);
     }
   };
   
-  if (!isConnected) {
-    return (
-      <Container>
-        <h1 className="mb-4">Settings</h1>
-        
-        <Card className="shadow-sm text-center p-5">
-          <Card.Body>
-            <h2 className="mb-4">Connect Your Wallet</h2>
-            <p className="mb-4">You need to connect your wallet to access settings.</p>
-            <Button 
-              variant="primary" 
-              size="lg" 
-              onClick={connectWallet}
-              disabled={loading}
-            >
-              {loading ? 'Connecting...' : 'Connect Wallet'}
-            </Button>
-          </Card.Body>
-        </Card>
-      </Container>
-    );
-  }
-  
   return (
     <Container>
-      <ToastContainer position="top-right" autoClose={5000} />
-      
       <h1 className="mb-4">Settings</h1>
       
       {error && (
-        <Alert variant="danger" className="mb-4" dismissible onClose={() => setError(null)}>
+        <Alert variant="danger" className="mb-4">
           {error}
         </Alert>
       )}
       
       {success && (
-        <Alert variant="success" className="mb-4" dismissible onClose={() => setSuccess(null)}>
+        <Alert variant="success" className="mb-4">
           {success}
         </Alert>
       )}
@@ -255,21 +203,11 @@ const Settings = () => {
                     {users.map(user => (
                       <tr key={user.address}>
                         <td>
-                          <small className="text-truncate d-inline-block" style={{maxWidth: '200px'}}>
-                            {user.address}
-                          </small>
+                          <small>{user.address.substring(0, 8)}...{user.address.substring(user.address.length - 4)}</small>
                         </td>
+                        <td>{user.roleName}</td>
                         <td>
-                          <Badge bg={
-                            user.role === 1 ? 'danger' : 
-                            user.role === 2 ? 'warning' : 
-                            'info'
-                          }>
-                            {user.roleName}
-                          </Badge>
-                        </td>
-                        <td>
-                          {user.address !== account?.addr && (
+                          {user.address !== account?.address && (
                             <Button 
                               variant="outline-danger" 
                               size="sm"
@@ -316,12 +254,7 @@ const Settings = () => {
                   type="submit"
                   disabled={loading}
                 >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                      Adding...
-                    </>
-                  ) : 'Add User'}
+                  {loading ? 'Adding...' : 'Add User'}
                 </Button>
               </Form>
             </Card.Body>
@@ -338,12 +271,7 @@ const Settings = () => {
                 onClick={handleBackupData}
                 disabled={loading}
               >
-                {loading ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Backing up...
-                  </>
-                ) : 'Backup Data to IPFS'}
+                {loading ? 'Backing up...' : 'Backup Data to IPFS'}
               </Button>
             </Card.Body>
           </Card>
@@ -373,15 +301,6 @@ const Settings = () => {
                   </tr>
                 </tbody>
               </Table>
-              <div className="d-grid mt-3">
-                <Button 
-                  variant="outline-secondary" 
-                  size="sm"
-                  onClick={() => window.open('https://testnet.algoexplorer.io/', '_blank')}
-                >
-                  View on AlgoExplorer
-                </Button>
-              </div>
             </Card.Body>
           </Card>
           
@@ -408,12 +327,7 @@ const Settings = () => {
                   type="submit"
                   disabled={loading}
                 >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                      Updating...
-                    </>
-                  ) : 'Update Interval'}
+                  {loading ? 'Updating...' : 'Update Interval'}
                 </Button>
               </Form>
             </Card.Body>
@@ -426,8 +340,10 @@ const Settings = () => {
                 <tbody>
                   <tr>
                     <th>Connected Account</th>
-                    <td className="text-truncate">
-                      {account ? account.addr : 'Not connected'}
+                    <td>
+                      {account ? (
+                        <small>{account.address}</small>
+                      ) : 'Not connected'}
                     </td>
                   </tr>
                   <tr>
@@ -437,10 +353,6 @@ const Settings = () => {
                   <tr>
                     <th>Version</th>
                     <td>1.0.0</td>
-                  </tr>
-                  <tr>
-                    <th>Last Backup</th>
-                    <td>Never</td>
                   </tr>
                 </tbody>
               </Table>
